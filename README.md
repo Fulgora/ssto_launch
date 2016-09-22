@@ -30,3 +30,10 @@ run ssto_launch.<br />
 <br />
 This copies the script to the internal storage of your plane before executing it.
 If you are using RemoteTech this might make a difference (easy way will not work without an active connection)
+
+
+#### Tested with:
+
+**LR-133 'Sabertooth':**<br/>
+    https://kerbalx.com/Fulgora/SSTO-LR-133-Sabertooth<br/>
+    Mods: FAR + kerbalx modlist
