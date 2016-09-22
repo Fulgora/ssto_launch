@@ -6,7 +6,7 @@ https://github.com/KSP-KOS/KOS<br />
 (written for kOS v 1.0.0)
 <br />
 <br />
-File location:<br />
+File location (just the file 'ssto_launch', not the .zip version of the repo!):<br />
 Kerbal Space Program\Ships\Script
 <br />
 ##Usage
