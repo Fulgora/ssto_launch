@@ -31,6 +31,10 @@ run ssto_launch.<br />
 This copies the script to the internal storage of your plane before executing it.
 If you are using RemoteTech this might make a difference (easy way will not work without an active connection)
 
+##Vessel requirements:
+- Action group 2: Toggle air-intakes
+- Action group 3: Toggle sabre/rapier mode
+- Action group 4: Toggle nukes
 
 #### Tested with:
 
