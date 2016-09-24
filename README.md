@@ -40,4 +40,3 @@ If you are using RemoteTech this might make a difference (easy way will not work
 
 **LR-133 'Sabertooth':**<br/>
     https://kerbalx.com/Fulgora/SSTO-LR-133-Sabertooth<br/>
-    Mods: FAR + kerbalx modlist
