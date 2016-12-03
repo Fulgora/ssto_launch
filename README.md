@@ -41,6 +41,10 @@ If you are using RemoteTech this might make a difference (easy way will not work
 - All engines in first stage
 
 #### Tested with:
-
+###### v0.1:
 **LR-133 'Sabertooth':**<br/>
     https://kerbalx.com/Fulgora/SSTO-LR-133-Sabertooth<br/>
+
+###### v0.3:
+**CT-32 LKO Crew Transporter:**<br/>
+    https://kerbalx.com/katateochi/CT-32<br/>
