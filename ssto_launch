@@ -3,7 +3,7 @@ PRINT " ".
 PRINT "**************************************************".
 PRINT "**                                              **".
 PRINT "**                                              **".
-PRINT "**            SSTO Launch-script v0.2           **".
+PRINT "**            SSTO Launch-script v0.3           **".
 PRINT "**                                              **".
 PRINT "**                                              **".
 PRINT "**               (c) Fulgora 2016               **".
@@ -24,11 +24,20 @@ SET engine_preheating TO False.
 // Runway takeoff in m/s
 SET takeoff_speed TO 130.
 
+// Takeoff pitch
+SET takeoff_pitch TO 15.
+
+// Initial ascent in pitch-degrees (0m - target_altitude) (must be greater than takeoff pitch)
+SET initial_pitch TO 25.
+
 // Target altitude in m to gain speed (must be above 1500m!)
 SET target_altitude TO 10000.
 
 // Target maximum speed in m/s at the altitude defined above
-SET target_speed TO 1100.
+SET target_speed TO 1200.
+
+// Final ascent in pitch-degrees (~target_altitude - 70k)
+SET final_pitch TO 15.
 
 // Maximum target apoapsis height
 SET max_apoapsis TO 100000.
@@ -78,7 +87,7 @@ IF engine_preheating {
     BRAKES OFF.
 }
 
-LOCK STEERING TO HEADING(90, 0).
+LOCK STEERING TO HEADING(90.45, 0). // Runway seems to be a bit off 90 degrees
 
 // Waiting for takeoff speed and configuring steering
 UNTIL SHIP:VELOCITY:SURFACE:MAG > takeoff_speed {
@@ -90,7 +99,7 @@ PRINT "Takeoff.".
 SET DEFAULT_PITCH TO HEADING(90, 30).
 
 // Trying to get off the runway
-SET current_target_pitch TO 15.
+SET current_target_pitch TO takeoff_pitch.
 LOCK STEERING TO HEADING(90, current_target_pitch).
 
 
@@ -102,17 +111,18 @@ GEAR OFF.
 // Disable nukes
 TOGGLE AG4.
 
-PRINT "Starting to gradually adjust pitch from 15.0 to 25".
+PRINT "Starting to gradually adjust pitch from " + ROUND(takeoff_pitch, 1) + " to " + initial_pitch.
 
 SET previous_target_pitch TO current_target_pitch.
 SET start_alt TO SHIP:ALTITUDE.
+SET target_pitch TO initial_pitch - takeoff_pitch.
 UNTIL SHIP:ALTITUDE > safe_alt {
     SET distance_to_ground TO (SHIP:ALTITUDE - start_alt).
     SET temp TO distance_to_ground / (safe_alt - start_alt).
 
-    SET current_target_pitch TO previous_target_pitch + (10 * temp).
+    SET current_target_pitch TO previous_target_pitch + (target_pitch * temp).
     LOCK STEERING TO HEADING(90, current_target_pitch).
-    PRINT ROUND(15 + (10 * temp),1) AT (40,21).
+    PRINT ROUND(current_target_pitch,1) AT (40,21).
     WAIT 0.1. // just trying not to fry your actual (physical) CPU
 }
 
@@ -126,42 +136,49 @@ PRINT "Pitching down to gain speed.".
 PRINT "Please fasten your seatbelts!".
 PRINT " ".
 
-SET count TO 0.
-SET previous_target_pitch TO current_target_pitch.
-SET new_target_pitch TO 5.
-UNTIL count > 1000 {
-    SET done TO ((15 * count) / 1000).
-    LOCK STEERING TO HEADING(90, 15 - done).
-    SET count TO count + 1.
-    WAIT 0.01. // just trying not to fry your actual (physical) CPU
-}
+IF(SHIP:VELOCITY:SURFACE:MAG < 0.8 * target_speed) {
+    // Wait until we reach the maximum athmospheric speed the SSTO can handle
+    SET target_vertical_speed TO 10.
+    UNTIL SHIP:VELOCITY:SURFACE:MAG > target_speed {
+        // Allow a small drain of vertical speed (10% per tick)
+        SET tmp_vertical_speed TO SHIP:VERTICALSPEED - (SHIP:VERTICALSPEED / 10).
+        WAIT 0.1.
+        IF (SHIP:VERTICALSPEED > target_vertical_speed AND tmp_vertical_speed < SHIP:VERTICALSPEED AND current_target_pitch > 5) {
+            // Too fast going up - need to pitch further down
+            //PRINT "Pitching down" + current_target_pitch AT (10,26).
+            SET current_target_pitch TO current_target_pitch - 0.1.
+            LOCK STEERING TO HEADING(90, current_target_pitch).
+        } ELSE IF (SHIP:VERTICALSPEED < 0 AND tmp_vertical_speed > SHIP:VERTICALSPEED) {
+            // Losing altitude - Jeb we gotta pitch up!
+            //PRINT "Pitching up  " + current_target_pitch AT (10,26).
+            SET current_target_pitch TO current_target_pitch + 0.1.
+            LOCK STEERING TO HEADING(90, current_target_pitch).
+        } ELSE {
+            //PRINT "Waiting...  " + current_target_pitch AT (10,26).
+        }
+    }
+    PRINT " ".
+    PRINT "Target speed of " + target_speed + "m/s reached.".
+    PRINT "Pitching back up.".
+} ELSE {
+    PRINT " ".
+    PRINT "Ship is already going close to the target speed of " + target_speed + "m/s.".
+    PRINT "Adjusting pitch for final ascent.".
 
-// Wait until we reach the maximum athmospheric speed the SSTO can handle
-SET target_vertical_speed TO 10.
-UNTIL SHIP:VELOCITY:SURFACE:MAG > target_speed {
-    SET tmp_vertical_speed TO SHIP:VERTICALSPEED.
-    WAIT 0.1.
-    IF (SHIP:VERTICALSPEED > target_vertical_speed AND tmp_vertical_speed < SHIP:VERTICALSPEED AND current_target_pitch > 1) {
-        // Too fast going up - need to pitch further down
-        SET current_target_pitch TO current_target_pitch - 0.001.
+    UNTIL (current_target_pitch < (final_pitch + 0.1)) {
+        SET current_target_pitch TO current_target_pitch - 0.1.
         LOCK STEERING TO HEADING(90, current_target_pitch).
-    } ELSE IF (SHIP:VERTICALSPEED < 0 AND tmp_vertical_speed > SHIP:VERTICALSPEED) {
-        // Losing altitude - Jeb we gotta pitch up!
-        SET current_target_pitch TO current_target_pitch + 0.001.
-        LOCK STEERING TO HEADING(90, current_target_pitch).
+        WAIT 0.1.
     }
 }
-PRINT " ".
-PRINT "Target speed of " + target_speed + "m/s reached.".
-PRINT "Pitching back up.".
 
 // After that we will slowly pitch back up...
 // over the course of gaining 5000m altitude... this may not be the best idea as reference but it kinda works so... #dontCare (yet)
 SET safe_alt TO SHIP:ALTITUDE + 5000.
 SET start_alt TO SHIP:ALTITUDE.
-SET new_target_pitch TO 15.
+SET new_target_pitch TO final_pitch.
 SET target_pitch_diff TO new_target_pitch - current_target_pitch.
-UNTIL SHIP:ALTITUDE > safe_alt OR current_target_pitch > new_target_pitch  {
+UNTIL SHIP:ALTITUDE > safe_alt OR current_target_pitch >= new_target_pitch  {
     SET distance_to_ground TO (SHIP:ALTITUDE - start_alt).
     SET temp TO distance_to_ground / (safe_alt - start_alt).
     SET current_target_pitch TO current_target_pitch + (target_pitch_diff * temp).
@@ -180,12 +197,7 @@ UNTIL SHIP:GROUNDSPEED < tmp_ground_speed {
 PRINT " ".
 PRINT "Activating nuclear engines.".
 TOGGLE AG4.
-
-UNTIL SHIP:ALTITUDE > 26500 {
-    WAIT 0.1. // just trying not to fry your actual (physical) CPU
-}
-
-
+WAIT 1.
 PRINT "Switching to closed cycle.".
 PRINT "Closing air-intakes.".
 TOGGLE AG3.
@@ -193,7 +205,7 @@ WAIT 1.
 TOGGLE AG2.
 
 // Wait until we are positive that we can make orbit - disable rocket engines
-UNTIL SHIP:APOAPSIS > 70000 {
+UNTIL SHIP:APOAPSIS > 65000 {
     WAIT 0.1. // just trying not to fry your actual (physical) CPU
 }
 
@@ -204,7 +216,7 @@ UNTIL SHIP:APOAPSIS > 70000 {
 //TOGGLE AG3.
 
 PRINT " ".
-PRINT "Suborbital trajectory established.".
+PRINT "Suborbital trajectory almost established.".
 PRINT "Pitching prograde.".
 LOCK STEERING TO SHIP:PROGRADE.
 
@@ -271,7 +283,7 @@ PRINT "**               ,'   | R |   '.                **".
 PRINT "**             ,' |   | A |   | `.              **".
 PRINT "**           .'___|___|_ _|___|___'.            **".
 PRINT "**                 /_\ /_\ /_\                  **".
-PRINT "**           SSTO Launch-script v0.2            **".
+PRINT "**           SSTO Launch-script v0.3            **".
 PRINT "**                                              **".
 PRINT "**    https://github.com/Fulgora/ssto_launch    **".
 PRINT "**************************************************".
