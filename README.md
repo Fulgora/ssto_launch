@@ -37,7 +37,7 @@ If you are using RemoteTech this might make a difference (easy way will not work
 ##Vessel requirements:
 - Action group 2: Toggle air-intakes
 - Action group 3: Toggle sabre/rapier mode
-- Action group 4: Toggle nukes
+- Action group 4: Toggle nervas (leave empty if no nervas are used!)
 - All engines in first stage
 
 #### Tested with:
