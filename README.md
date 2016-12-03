@@ -1,4 +1,6 @@
-# ssto_launch
+# KSP|kOS-Script that will take any* SSTO to space!
+<br />*given that there is enough lift, control and deltaV of course ;)
+
 <br />
 KSP-Mod required (you can also install it via CKAN):<br />
 https://github.com/KSP-KOS/KOS<br />
