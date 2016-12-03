@@ -3,7 +3,7 @@ PRINT " ".
 PRINT "**************************************************".
 PRINT "**                                              **".
 PRINT "**                                              **".
-PRINT "**            SSTO Launch-script v0.1           **".
+PRINT "**            SSTO Launch-script v0.2           **".
 PRINT "**                                              **".
 PRINT "**                                              **".
 PRINT "**               (c) Fulgora 2016               **".
@@ -19,7 +19,7 @@ PRINT " ".
 // ******************************************************************** //
 
 // Enable/Disable engine pre-heating
-SET engine_preheating TO True.
+SET engine_preheating TO False.
 
 // Runway takeoff in m/s
 SET takeoff_speed TO 130.
@@ -28,7 +28,7 @@ SET takeoff_speed TO 130.
 SET target_altitude TO 10000.
 
 // Target maximum speed in m/s at the altitude defined above
-SET target_speed TO 1200.
+SET target_speed TO 1100.
 
 // Maximum target apoapsis height
 SET max_apoapsis TO 100000.
@@ -47,6 +47,7 @@ PRINT " ".
 
 SET airborn TO 80.
 SET safe_alt TO 1500.
+SET current_target_pitch TO 0.
 
 IF engine_preheating {
     BRAKES ON.
@@ -73,18 +74,25 @@ IF engine_preheating {
     // Pre-heating engines
     WAIT 10.
     BRAKES OFF.
+} ELSE {
+    BRAKES OFF.
 }
 
+LOCK STEERING TO HEADING(90, 0).
 
 // Waiting for takeoff speed and configuring steering
-WAIT UNTIL SHIP:VELOCITY:SURFACE:MAG > takeoff_speed.
+UNTIL SHIP:VELOCITY:SURFACE:MAG > takeoff_speed {
+    WAIT 0.1. // just trying not to fry your actual (physical) CPU
+}
+
 PRINT "Takeoff.".
 //SET DEFAULT_PITCH TO North + R(30,90,-90).
 SET DEFAULT_PITCH TO HEADING(90, 30).
 
 // Trying to get off the runway
-//SET SHIP:CONTROL:PITCH TO 1.0.
-LOCK STEERING TO HEADING(90, 15).
+SET current_target_pitch TO 15.
+LOCK STEERING TO HEADING(90, current_target_pitch).
+
 
 UNTIL SHIP:ALTITUDE > airborn {
     WAIT 0.1. // just trying not to fry your actual (physical) CPU
@@ -96,11 +104,14 @@ TOGGLE AG4.
 
 PRINT "Starting to gradually adjust pitch from 15.0 to 25".
 
+SET previous_target_pitch TO current_target_pitch.
 SET start_alt TO SHIP:ALTITUDE.
 UNTIL SHIP:ALTITUDE > safe_alt {
     SET distance_to_ground TO (SHIP:ALTITUDE - start_alt).
     SET temp TO distance_to_ground / (safe_alt - start_alt).
-    LOCK STEERING TO HEADING(90, 15 + (10 * temp)).
+
+    SET current_target_pitch TO previous_target_pitch + (10 * temp).
+    LOCK STEERING TO HEADING(90, current_target_pitch).
     PRINT ROUND(15 + (10 * temp),1) AT (40,21).
     WAIT 0.1. // just trying not to fry your actual (physical) CPU
 }
@@ -114,41 +125,74 @@ PRINT "Target altitude of " + target_altitude + "m reached.".
 PRINT "Pitching down to gain speed.".
 PRINT "Please fasten your seatbelts!".
 PRINT " ".
-LOCK STEERING TO HEADING(90, 5).
 
+SET count TO 0.
+SET previous_target_pitch TO current_target_pitch.
+SET new_target_pitch TO 5.
+UNTIL count > 1000 {
+    SET done TO ((15 * count) / 1000).
+    LOCK STEERING TO HEADING(90, 15 - done).
+    SET count TO count + 1.
+    WAIT 0.01. // just trying not to fry your actual (physical) CPU
+}
 
 // Wait until we reach the maximum athmospheric speed the SSTO can handle
+SET target_vertical_speed TO 10.
 UNTIL SHIP:VELOCITY:SURFACE:MAG > target_speed {
-    WAIT 0.1. // just trying not to fry your actual (physical) CPU
+    SET tmp_vertical_speed TO SHIP:VERTICALSPEED.
+    WAIT 0.1.
+    IF (SHIP:VERTICALSPEED > target_vertical_speed AND tmp_vertical_speed < SHIP:VERTICALSPEED AND current_target_pitch > 1) {
+        // Too fast going up - need to pitch further down
+        SET current_target_pitch TO current_target_pitch - 0.001.
+        LOCK STEERING TO HEADING(90, current_target_pitch).
+    } ELSE IF (SHIP:VERTICALSPEED < 0 AND tmp_vertical_speed > SHIP:VERTICALSPEED) {
+        // Losing altitude - Jeb we gotta pitch up!
+        SET current_target_pitch TO current_target_pitch + 0.001.
+        LOCK STEERING TO HEADING(90, current_target_pitch).
+    }
 }
 PRINT " ".
 PRINT "Target speed of " + target_speed + "m/s reached.".
 PRINT "Pitching back up.".
 
-// After that we will slowly pitch back up to 90,25
-SET safe_alt TO target_altitude + 5000.
+// After that we will slowly pitch back up...
+// over the course of gaining 5000m altitude... this may not be the best idea as reference but it kinda works so... #dontCare (yet)
+SET safe_alt TO SHIP:ALTITUDE + 5000.
 SET start_alt TO SHIP:ALTITUDE.
-UNTIL SHIP:ALTITUDE > safe_alt {
+SET new_target_pitch TO 15.
+SET target_pitch_diff TO new_target_pitch - current_target_pitch.
+UNTIL SHIP:ALTITUDE > safe_alt OR current_target_pitch > new_target_pitch  {
     SET distance_to_ground TO (SHIP:ALTITUDE - start_alt).
     SET temp TO distance_to_ground / (safe_alt - start_alt).
-    LOCK STEERING TO HEADING(90, 5 + (20 * temp)).
+    SET current_target_pitch TO current_target_pitch + (target_pitch_diff * temp).
+    LOCK STEERING TO HEADING(90, current_target_pitch).
     WAIT 0.1. // just trying not to fry your actual (physical) CPU
 }
+SET current_target_pitch TO new_target_pitch.
+LOCK STEERING TO HEADING(90, current_target_pitch).
 
-// Wait until we run out of air and toggle engine modes (and close air intakes)
+// Wait until we start losing speed and toggle engine modes (and close air intakes)
+SET tmp_ground_speed TO SHIP:GROUNDSPEED.
+UNTIL SHIP:GROUNDSPEED < tmp_ground_speed {
+    SET tmp_ground_speed TO SHIP:GROUNDSPEED.
+    WAIT 0.1. // just trying not to fry your actual (physical) CPU
+}
+PRINT " ".
+PRINT "Activating nuclear engines.".
+TOGGLE AG4.
+
 UNTIL SHIP:ALTITUDE > 26500 {
     WAIT 0.1. // just trying not to fry your actual (physical) CPU
 }
 
-PRINT " ".
-PRINT "Activating nuclear engines.".
+
 PRINT "Switching to closed cycle.".
 PRINT "Closing air-intakes.".
-TOGGLE AG4.
 TOGGLE AG3.
+WAIT 1.
 TOGGLE AG2.
 
-// Wait until we are positiv that we can make orbit - disable rocket engines
+// Wait until we are positive that we can make orbit - disable rocket engines
 UNTIL SHIP:APOAPSIS > 70000 {
     WAIT 0.1. // just trying not to fry your actual (physical) CPU
 }
@@ -157,7 +201,7 @@ UNTIL SHIP:APOAPSIS > 70000 {
 // If you can't make orbit move the 'TOGGLE AG3.' to line 156
 // If you can't make orbit after moving the line below comment out the line 'LOCK STEERING TO SHIP:PROGRADE.' (or delete everything below and fly manual from here)
 // This will be less efficient but gives you moar power and lets face it - efficeny is useless if we cant make orbit amirite?
-TOGGLE AG3.
+//TOGGLE AG3.
 
 PRINT " ".
 PRINT "Suborbital trajectory established.".
@@ -168,7 +212,7 @@ LOCK STEERING TO SHIP:PROGRADE.
 SET last_warp TO 0.
 SET apo_peri_distance TO ETA:APOAPSIS - SHIP:PERIAPSIS.
 //UNTIL (SHIP:APOAPSIS > 100000 OR apo_peri_distance < 500 OR (ETA:APOAPSIS - SHIP:PERIAPSIS > apo_peri_distance AND SHIP:PERIAPSIS > 72000) OR SHIP:CONTROL:PILOTMAINTHROTTLE = 0) {
-UNTIL (SHIP:APOAPSIS > max_apoapsis OR SHIP:PERIAPSIS > min_periapsis OR SHIP:CONTROL:PILOTMAINTHROTTLE = 0) {
+UNTIL (SHIP:APOAPSIS > max_apoapsis OR SHIP:PERIAPSIS > min_periapsis) {
     SET tmp_eta_apoapsis TO ETA:APOAPSIS.
     SET apo_peri_distance TO ETA:APOAPSIS - SHIP:PERIAPSIS.
     WAIT 0.1. // just trying not to fry your actual (physical) CPU
@@ -211,23 +255,23 @@ PRINT "**                                              **".
 PRINT "**                                              **".
 PRINT "**           Transferring control back          **".
 PRINT "**                                              **".
-PRINT "**  I hope you had a pleasent flight (so far)   **".
+PRINT "**  I hope you had a pleasant flight (so far)   **".
 PRINT "**                     :D                       **".
 PRINT "**                      _                       **".
 PRINT "**                     / \                      **".
 PRINT "**                    |.-.|                     **".
 PRINT "**                    |   |                     **".
 PRINT "**                    |   |                     **".
-PRINT "**                    |   |                     **".
-PRINT "**                  _ | F | _                   **".
-PRINT "**                 / \| U |/ \                  **".
-PRINT "**                |   | L |   |                 **".
+PRINT "**                    | F |                     **".
+PRINT "**                  _ | U | _                   **".
+PRINT "**                 / \| L |/ \                  **".
 PRINT "**                |   | G |   |                 **".
-PRINT "**               ,'   | O |   '.                **".
-PRINT "**             ,' |   | R |   | `.              **".
-PRINT "**           .'___|___|_A_|___|___'.            **".
+PRINT "**                |   | O |   |                 **".
+PRINT "**               ,'   | R |   '.                **".
+PRINT "**             ,' |   | A |   | `.              **".
+PRINT "**           .'___|___|_ _|___|___'.            **".
 PRINT "**                 /_\ /_\ /_\                  **".
-PRINT "**           SSTO Launch-script v0.1            **".
+PRINT "**           SSTO Launch-script v0.2            **".
 PRINT "**                                              **".
 PRINT "**    https://github.com/Fulgora/ssto_launch    **".
 PRINT "**************************************************".
