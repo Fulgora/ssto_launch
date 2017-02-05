@@ -3,7 +3,7 @@ PRINT " ".
 PRINT "**************************************************".
 PRINT "**                                              **".
 PRINT "**                                              **".
-PRINT "**            SSTO Launch-script v0.3           **".
+PRINT "**            SSTO Launch-script v0.4           **".
 PRINT "**                                              **".
 PRINT "**                                              **".
 PRINT "**               (c) Fulgora 2016               **".
@@ -21,6 +21,9 @@ PRINT " ".
 // Enable/Disable engine pre-heating
 SET engine_preheating TO False.
 
+// Enable/Disable auto-closing of air-intakes
+SET toggle_intakes TO False.
+
 // Runway takeoff in m/s
 SET takeoff_speed TO 130.
 
@@ -28,7 +31,7 @@ SET takeoff_speed TO 130.
 SET takeoff_pitch TO 15.
 
 // Initial ascent in pitch-degrees (0m - target_altitude) (must be greater than takeoff pitch)
-SET initial_pitch TO 25.
+SET initial_pitch TO 15.
 
 // Target altitude in m to gain speed (must be above 1500m!)
 SET target_altitude TO 10000.
@@ -66,7 +69,7 @@ IF engine_preheating {
 PRINT "IGNITION IN... T-".
 FROM {local countdown is 10.} UNTIL countdown = 0 STEP {SET countdown to countdown - 1.} DO {
     PRINT countdown + " " AT (17,16).
-    WAIT 1. // pauses the script here for 1 second.
+    WAIT 0.1. // pauses the script here for 1 second.
 }
 PRINT 0 + " " AT (17,16).
 WAIT 0.2.
@@ -87,7 +90,8 @@ IF engine_preheating {
     BRAKES OFF.
 }
 
-LOCK STEERING TO HEADING(90.45, 0). // Runway seems to be a bit off 90 degrees
+set initialPitch to 90 - vectorangle(UP:VECTOR, SHIP:FACING:FOREVECTOR).
+LOCK STEERING TO HEADING(90.42, initialPitch). // Runway seems to be a bit off 90 degrees
 
 // Waiting for takeoff speed and configuring steering
 UNTIL SHIP:VELOCITY:SURFACE:MAG > takeoff_speed {
@@ -109,7 +113,7 @@ UNTIL SHIP:ALTITUDE > airborn {
 GEAR OFF.
 
 // Disable nukes
-TOGGLE AG4.
+deactivateNukes().
 
 PRINT "Starting to gradually adjust pitch from " + ROUND(takeoff_pitch, 1) + " to " + initial_pitch.
 
@@ -127,7 +131,7 @@ UNTIL SHIP:ALTITUDE > safe_alt {
 }
 
 // Waiting until we reach our 'travel-altitude' and lock steering to horizon
-UNTIL SHIP:ALTITUDE > target_altitude {
+UNTIL SHIP:APOAPSIS > target_altitude {
     WAIT 0.1. // just trying not to fry your actual (physical) CPU
 }
 PRINT " ".
@@ -173,8 +177,8 @@ IF(SHIP:VELOCITY:SURFACE:MAG < 0.8 * target_speed) {
 }
 
 // After that we will slowly pitch back up...
-// over the course of gaining 5000m altitude... this may not be the best idea as reference but it kinda works so... #dontCare (yet)
-SET safe_alt TO SHIP:ALTITUDE + 5000.
+// over the course of gaining 10000m altitude... this may not be the best idea as reference but it kinda works so... #dontCare (yet)
+SET safe_alt TO SHIP:ALTITUDE + 10000.
 SET start_alt TO SHIP:ALTITUDE.
 SET new_target_pitch TO final_pitch.
 SET target_pitch_diff TO new_target_pitch - current_target_pitch.
@@ -188,21 +192,32 @@ UNTIL SHIP:ALTITUDE > safe_alt OR current_target_pitch >= new_target_pitch  {
 SET current_target_pitch TO new_target_pitch.
 LOCK STEERING TO HEADING(90, current_target_pitch).
 
+SET nukes_active TO False.
 // Wait until we start losing speed and toggle engine modes (and close air intakes)
 SET tmp_ground_speed TO SHIP:GROUNDSPEED.
-UNTIL SHIP:GROUNDSPEED < tmp_ground_speed {
+UNTIL (getTWR() < 0.5 AND nukes_active) {
     SET tmp_ground_speed TO SHIP:GROUNDSPEED.
     WAIT 0.1. // just trying not to fry your actual (physical) CPU
+	IF (getTWR() < 1.5 AND NOT nukes_active) {
+	    activateNukes().
+		SET nukes_active TO True.
+	}
 }
-PRINT " ".
-PRINT "Activating nuclear engines.".
-TOGGLE AG4.
-WAIT 1.
+
+IF (NOT nukes_active) {
+	activateNukes().
+	SET nukes_active TO True.
+	WAIT 1.
+}
+
 PRINT "Switching to closed cycle.".
-PRINT "Closing air-intakes.".
-TOGGLE AG3.
+toogleRapier().
 WAIT 1.
-TOGGLE AG2.
+
+IF toggle_intakes {
+    PRINT "Closing air-intakes.".
+    TOGGLE INTAKES.
+}
 
 // Wait until we are positive that we can make orbit - disable rocket engines
 UNTIL SHIP:APOAPSIS > 65000 {
@@ -283,8 +298,55 @@ PRINT "**               ,'   | R |   '.                **".
 PRINT "**             ,' |   | A |   | `.              **".
 PRINT "**           .'___|___|_ _|___|___'.            **".
 PRINT "**                 /_\ /_\ /_\                  **".
-PRINT "**           SSTO Launch-script v0.3            **".
+PRINT "**           SSTO Launch-script v0.4            **".
 PRINT "**                                              **".
 PRINT "**    https://github.com/Fulgora/ssto_launch    **".
 PRINT "**************************************************".
 PRINT " ".
+
+
+declare function getTWR
+{
+    set mth to SHIP:MAXTHRUST. // (depends on fixed kOS issue 940)
+    set r to SHIP:ALTITUDE+SHIP:BODY:RADIUS.
+    set w to SHIP:MASS * SHIP:BODY:MU / r / r.
+	//PRINT mth/w AT (1,1).
+	
+    return mth/w.
+}
+
+declare function activateNukes
+{
+    SET count TO 0.
+	LIST ENGINES IN engines.
+	FOR eng IN engines {
+	    IF eng:Name:CONTAINS("nuclearEngine") {
+		    eng:ACTIVATE().
+			SET count TO count + 1.
+		}
+    }.
+	IF count > 0 {
+	    PRINT " ".
+	    PRINT "Activating nukes.".
+	}
+}
+
+declare function deactivateNukes
+{
+    LIST ENGINES IN engines.
+	FOR eng IN engines {
+	    IF eng:Name:CONTAINS("nuclearEngine") {
+		    eng:SHUTDOWN().
+		}
+    }.
+}
+
+declare function toogleRapier
+{
+    LIST ENGINES IN engines.
+	FOR eng IN engines {
+	    IF eng:Name:CONTAINS("RAPIER") {
+		    eng:TOGGLEMODE().
+		}
+    }.
+}
