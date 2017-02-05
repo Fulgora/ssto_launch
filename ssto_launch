@@ -69,7 +69,7 @@ IF engine_preheating {
 PRINT "IGNITION IN... T-".
 FROM {local countdown is 10.} UNTIL countdown = 0 STEP {SET countdown to countdown - 1.} DO {
     PRINT countdown + " " AT (17,16).
-    WAIT 0.1. // pauses the script here for 1 second.
+    WAIT 1.0. // pauses the script here for 1 second.
 }
 PRINT 0 + " " AT (17,16).
 WAIT 0.2.
@@ -198,7 +198,7 @@ SET tmp_ground_speed TO SHIP:GROUNDSPEED.
 UNTIL (getTWR() < 0.5 AND nukes_active) {
     SET tmp_ground_speed TO SHIP:GROUNDSPEED.
     WAIT 0.1. // just trying not to fry your actual (physical) CPU
-	IF (getTWR() < 1.5 AND NOT nukes_active) {
+	IF (getTWR() < 0.5 AND NOT nukes_active) {
 	    activateNukes().
 		SET nukes_active TO True.
 	}
