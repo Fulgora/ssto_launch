@@ -5,7 +5,7 @@
 KSP-Mod required (you can also install it via CKAN):<br />
 https://github.com/KSP-KOS/KOS<br />
 <br />
-(written for kOS v 1.0.0)
+(written for kOS v 1.0.3)
 <br />
 <br />
 File location (just the file 'ssto_launch', not the .zip version of the repo!):<br />
@@ -37,9 +37,6 @@ This copies the script to the internal harddrive of your plane before executing 
 If you are using RemoteTech this might make a difference (easy way will not work without an active connection)
 
 ##Vessel requirements:
-- Action group 2: Toggle air-intakes
-- Action group 3: Toggle sabre/rapier mode
-- Action group 4: Toggle nervas (leave empty if no nervas are used!)
 - All engines in first stage
 
 #### Tested with:
@@ -50,3 +47,9 @@ If you are using RemoteTech this might make a difference (easy way will not work
 ###### v0.3:
 **CT-32 LKO Crew Transporter:**<br/>
     https://kerbalx.com/katateochi/CT-32<br/>
+    
+###### v0.4:
+**CT-32 LKO Crew Transporter:**<br/>
+    https://kerbalx.com/katateochi/CT-32<br/>
+**Astraios 2:**<br/>
+    https://kerbalx.com/Fulgora/Astraios-2<br/>
