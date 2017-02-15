@@ -14,7 +14,7 @@ Kerbal Space Program\Ships\Script
 ##Vessel requirements:
 - Engines: Rapier (required), nuclear (optional), other jet-engines to assist atmospheric flight (optional)
 - All engines in first stage
-- Rapier engines set to 'manual switching'
+- Rapier engines set to 'manual switching' (highly recommended)
 
 ##Usage:
 Launch the craft like any other SSTO to the runway. (I like to turn on the brakes but its not a must)<br/>
@@ -51,3 +51,4 @@ If you are using RemoteTech this might make a difference (easy way will not work
 ###### v0.4:
 - [CT-32 LKO Crew Transporter](https://kerbalx.com/katateochi/CT-32) [KSP 1.2.2]
 - [Astraios 2](https://kerbalx.com/Fulgora/Astraios-2) [KSP 1.2.2]
+- [CL-206 'Mammoth'](https://kerbalx.com/Fulgora/SSTO-CL-206-Mammoth) [KSP 1.2.2]
