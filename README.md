@@ -11,16 +11,16 @@ https://github.com/KSP-KOS/KOS<br />
 File location (just the file 'ssto_launch', not the .zip version of the repo!):<br />
 Kerbal Space Program\Ships\Script
 
-##Vessel requirements:
+## Vessel requirements:
 - Engines: Rapier (required), nuclear (optional), other jet-engines to assist atmospheric flight (optional)
 - All engines in first stage
 - Rapier engines set to 'manual switching' (highly recommended)
 
-##Usage:
+## Usage:
 Launch the craft like any other SSTO to the runway. (I like to turn on the brakes but its not a must)<br/>
 How to open the terminal: Click on the kOS mod icon and then click the computer icon in the window that pops up.
 
-####Easy way:
+#### Easy way:
 Open the kOS Terminal in your spaceplane and type:
 <br />
 <br />
@@ -29,7 +29,7 @@ run ssto_launch.<br />
 <br />
 This runs the script on your ship while it is stored on the 'harddrive' in the KSC
 <br />
-####Realistic way:
+#### Realistic way:
 Open the kOS Terminal in your spaceplane and type (w/o quotes):
 <br />
 <br />
